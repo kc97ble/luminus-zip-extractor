@@ -86,6 +86,33 @@ def get_auto_mapping(source_items, target_items):
             mapping[s] = potentials[0]
     return mapping
 
+def get_auto_mapping_choose_max(source_items, target_items):
+    mapping = get_initial_mapping(source_items)
+    for s in source_items:
+        best_score = max(score(s, t) for t in target_items)
+        potentials = [t for t in target_items if score(s, t) == best_score]
+        if len(potentials) == 1 and best_score > 0:
+            mapping[s] = potentials[0]
+    return mapping
+
+def delete_mapped_source_items(mapping):
+    for k in mapping:
+        if mapping[k]:
+            os.remove(k)
+
+HELP_MESSAGE = """
+XY: Map X to Y, X='a'..'z', Y=1..n. For example, 'a1' maps item a with item 1.
+q: Quit
+x: Execute, i.e. unzip ZIP files to the mapped target folders
+X: Execute, then delete mapped source files
+c: Clear mapping
+a: Auto mapping
+A: Auto mapping, choose the best match if there are multiple matches
+d: Delete mapped source files, then reload
+r: Reload
+h: Show this help
+"""
+
 def interact(args):
     source_folder = args.source_folder or input("Source folder: ")
     target_folder = args.target_folder or input("Target folder: ")
@@ -93,7 +120,8 @@ def interact(args):
     source_items = get_source_items(source_folder)
     target_items = get_target_items(target_folder)
 
-    mapping = get_initial_mapping(source_items)
+    # mapping = get_initial_mapping(source_items)
+    mapping = get_auto_mapping(source_items, target_items)
 
     while True:
         display_info(source_items, target_items, mapping)
@@ -114,10 +142,25 @@ def interact(args):
             elif command == 'x':
                 execute(mapping)
                 return
+            elif command == 'X':
+                execute(mapping)
+                delete_mapped_source_items(mapping)
+                return
             elif command == 'c':
                 mapping = get_initial_mapping(source_items)
             elif command == 'a':
                 mapping = get_auto_mapping(source_items, target_items)
+            elif command == 'A':
+                mapping = get_auto_mapping_choose_max(source_items, target_items)
+            elif command == 'd':
+                delete_mapped_source_items(mapping)
+                interact(args) # Reload
+                return
+            elif command == 'r':
+                interact(args) # Reload
+                return
+            elif command == 'h':
+                print(HELP_MESSAGE)
 
 if __name__ == '__main__':
 
